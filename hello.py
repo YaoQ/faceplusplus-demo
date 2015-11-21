@@ -1,21 +1,15 @@
 #!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-# $File: hello.py
-
-# In this tutorial, you will learn how to call Face ++ APIs and implement a
-# simple App which could recognize a face image in 3 candidates.
-# 在本教程中，您将了解到Face ++ API的基本调用方法，并实现一个简单的App，用以在3
-# 张备选人脸图片中识别一个新的人脸图片。
-
-# You need to register your App first, and enter you API key/secret.
-# 您需要先注册一个App，并将得到的API key和API secret写在这里。
-API_KEY = '29f7e14333edb39f323093704d82e92a'
-API_SECRET = 'DXjuFA8gpvvzHaMiOSTZzdh1qZqtmNzq'
-
 # Import system libraries and define helper functions
-# 导入系统库并定义辅助函数
 import time
+import sys
+import os
+import os.path
 from pprint import pformat
+
+# First import the API class from the SDK
+from facepp import API
+from facepp import File
+
 def print_result(hint, result):
     def encode(obj):
         if type(obj) is unicode:
@@ -29,14 +23,20 @@ def print_result(hint, result):
     result = encode(result)
     print '\n'.join(['  ' + i for i in pformat(result, width = 75).split('\n')])
 
-# First import the API class from the SDK
-# 首先，导入SDK中的API类
-from facepp import API
+def init():
+    fdir = os.path.dirname(__file__) 
+    with open(os.path.join(fdir, 'apikey.cfg')) as f:
+        exec(f.read())
 
-api = API(API_KEY, API_SECRET)
+    srv = locals().get('SERVER')
+    return API(API_KEY, API_SECRET, srv = srv)
+
+# In this tutorial, you will learn how to call Face ++ APIs and implement a
+# simple App which could recognize a face image in 3 candidates.
+
+api = init() 
 
 # Here are the person names and their face images
-# 人名及其脸部图片
 IMAGE_DIR = 'http://cn.faceplusplus.com/static/resources/python_demo/'
 PERSONS = [
     ('Jim Parsons', IMAGE_DIR + '1.jpg'),
@@ -47,7 +47,6 @@ TARGET_IMAGE = IMAGE_DIR + '4.jpg'
 
 # Step 1: Detect faces in the 3 pictures and find out their positions and
 # attributes
-# 步骤1：检测出三张输入图片中的Face，找出图片中Face的位置及属性
 
 FACES = {name: api.detection.detect(url = url)
         for name, url in PERSONS}
@@ -57,30 +56,25 @@ for name, face in FACES.iteritems():
 
 
 # Step 2: create persons using the face_id
-# 步骤2：引用face_id，创建新的person
 for name, face in FACES.iteritems():
     rst = api.person.create(
             person_name = name, face_id = face['face'][0]['face_id'])
     print_result('create person {}'.format(name), rst)
 
 # Step 3: create a new group and add those persons in it
-# 步骤3：.创建Group，将之前创建的Person加入这个Group
 rst = api.group.create(group_name = 'standard')
 print_result('create group', rst)
 rst = api.group.add_person(group_name = 'standard', person_name = FACES.iterkeys())
 print_result('add these persons to group', rst)
 
 # Step 4: train the model
-# 步骤4：训练模型
 rst = api.train.identify(group_name = 'standard')
 print_result('train', rst)
 # wait for training to complete
-# 等待训练完成
 rst = api.wait_async(rst['session_id'])
 print_result('wait async', rst)
 
 # Step 5: recognize face in a new image
-# 步骤5：识别新图中的Face
 rst = api.recognition.identify(group_name = 'standard', url = TARGET_IMAGE)
 print_result('recognition result', rst)
 print '=' * 60
@@ -88,13 +82,9 @@ print 'The person with highest confidence:', \
         rst['face'][0]['candidate'][0]['person_name']
 
 # Finally, delete the persons and group because they are no longer needed
-# 最终，删除无用的person和group
 api.group.delete(group_name = 'standard')
 api.person.delete(person_name = FACES.iterkeys())
 
 # Congratulations! You have finished this tutorial, and you can continue
 # reading our API document and start writing your own App using Face++ API!
 # Enjoy :)
-# 恭喜！您已经完成了本教程，可以继续阅读我们的API文档并利用Face++ API开始写您自
-# 己的App了！
-# 旅途愉快 :)

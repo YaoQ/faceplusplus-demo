@@ -1,13 +1,15 @@
 #!/usr/bin/env python2
-# You need to register your App first, and enter you API key/secret.
-API_KEY = '29f7e14333edb39f323093704d82e92a'
-API_SECRET = 'DXjuFA8gpvvzHaMiOSTZzdh1qZqtmNzq'
-
 # Import system libraries and define helper functions
 import time
 import sys
-
+import os
+import os.path
 from pprint import pformat
+
+# First import the API class from the SDK
+from facepp import API
+from facepp import File
+
 def print_result(hint, result):
     def encode(obj):
         if type(obj) is unicode:
@@ -21,9 +23,13 @@ def print_result(hint, result):
     result = encode(result)
     print '\n'.join(['  ' + i for i in pformat(result, width = 75).split('\n')])
 
-# First import the API class from the SDK
-from facepp import API
-from facepp import File
+def init():
+    fdir = os.path.dirname(__file__) 
+    with open(os.path.join(fdir, 'apikey.cfg')) as f:
+        exec(f.read())
+
+    srv = locals().get('SERVER')
+    return API(API_KEY, API_SECRET, srv = srv)
 
 if len(sys.argv) < 2:
     print 'error!'
@@ -32,7 +38,7 @@ if len(sys.argv) < 2:
 
 group_name = sys.argv[1]
 
-api = API(API_KEY, API_SECRET)
+api = init() 
 
 result = api.group.delete(group_name = group_name)
 print_result("result is :", result)
